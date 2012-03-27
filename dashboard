@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+use lib qw(/home/toshi/perl/lib);
+use strict;
+use Data::Dumper;
+use TumblrDashboard;
+use YAML;
+use Encode;
+use utf8;
+my $pit_account = 'news.azwad.com';
+
+my $offset = 0;
+my $num = 10;
+my $type = '';
+my $delay_time = 1;
+
+for ($offset = 0; $offset <= 250; $offset += $num){
+
+my $td = TumblrDashboard->new($pit_account);
+
+print "offset = ". $offset ." num = ". $num . "\n";
+my %opt = (
+		'start' => $offset,
+		'num'		=> $num,
+		'type'	=> $type,
+#		'filter'=> 'none',
+#		'likes' => '0',
+);
+
+$td->set_option(%opt);
+
+my $res;
+my $res  = $td->get_hash;
+
+
+open my $fh1, '>>', 'tumblrdashboard.xml';
+print $fh1 encode_utf8(Dump($res));
+close $fh1;
+
+open my $fh2, '>>', 'tumblrdashboard.txt';
+open my $fh3, '>>', 'dblist.txt';
+
+my $dbname = 'tumblr_deduped_check';
+
+my %deduped = {};
+dbmopen(%deduped, $dbname, 0644);
+my $deduped = \%deduped;
+
+#print $res."\n";
+
+while (my ($post, $values) = each %$res) {
+  if (exists $deduped{$post}){
+		print $deduped{$post} ."is match an old post\n";
+		next;
+	}else {
+		my @urls =();
+		for (my ($number, $url) = each %$deduped){
+			push(@urls,$url);
+		}
+		my $date = $values->{date};
+		my $publish_type = $values->{type};
+		$_ =  $values->{'quote-source'} || $values->{'link-description'} || $values->{'photo-caption'};
+		s/<a href="(http.+?)".*>(.+?)<\/a>/$1,$2/ ;
+#		print $1 .":".$2. "\n"; 
+		my $title = $2 ;
+		my $link =  $1 || $values->{'photo-link-url'} || $values->{'url'};
+		my $from = $values->{tumblelog}[0];
+		print $title." : ".$link ."\n";
+		if ( grep{ $_ eq $link } @urls){
+			print "match listed url\n";
+			next;
+		}else{
+			my $text = $values->{'quote-text'} || $values->{'link-text'} || $values->{'regular-body'};
+			$deduped{$post} = $link;
+
+			utf8::is_utf8($title)?encode('utf-8',$title):$title;
+			utf8::is_utf8($text)?encode('utf-8', $text):$text;
+
+			print $fh3 $post." : ".$from ." : " .$publish_type." : ".$title."\n";
+			print $fh2 $title." : ".$link."\n";
+			print $fh2 $date." : ".$publish_type."\n";
+			print $fh2 "\n";
+			print $fh2 $text."\n";
+			print $fh2 "\n";
+		}
+	}
+}
+sleep $delay_time;
+
+#print Dump($res);
+
+close $fh2;
+close $fh3;
+}
+
