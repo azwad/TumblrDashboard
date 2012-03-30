@@ -1,14 +1,13 @@
 #!/usr/bin/perl
 use strict;
+use warnings;
 use URI;
 use WWW::Mechanize::GZip;
 use YAML;
 use Encode;
 use Config::Pit;
 use Compress::Zlib;
-use Web::Scraper;
 use XML::Simple;
-use Data::Dumper;
 
 { package TumblrDashboard;
 	sub new {
@@ -38,6 +37,7 @@ use Data::Dumper;
 	}
 	sub init_option {
 		my $self = shift;
+#		print "initializing options\n";
 		my $option = $self->{option};
 		my @options =( ) ;
 		push(@options,  ('&start='.$option->{start}))			if $option->{start}; 
@@ -46,18 +46,25 @@ use Data::Dumper;
 		push(@options,  ('&filter='. $option->{filter}))	if $option->{filter};
 		push(@options,  ('&likes=' . $option->{likes}))		if $option->{likes};
 		$self->{init_option} = join('',@options);
+		my $option = $self->{init_option};
 		$self->init;
-		return  $self->{init_option}."\n";
+		return  $self->{init_option};
 	}
 	sub init {
 		my $self = shift;
-		my $apiurl = 'http://www.tumblr.com/api/dashboard';
+		my $apiurl;
+		if ( $self->{option}->{liked} eq 'true'){
+				$apiurl = 'http://www.tumblr.com/api/likes';
+		}else{
+				$apiurl = 'http://www.tumblr.com/api/dashboard';
+		}
+#		print "Access API is $apiurl\n";
 		my $pit_account;
 		if ( $self->{pit_account}){
 			$pit_account = $self->{pit_account};
 		}
 		else{
-#			return print "Set pit_account\n";
+			return print "Set pit_account\n";
 		}
 		my $config = Config::Pit::pit_get($pit_account, require => {
 				"user"		 => "username",
@@ -69,8 +76,10 @@ use Data::Dumper;
 		my $password = $config->{password};
 		my $url = $apiurl."?email=" . $email . "&password=". $password;
 		$url 	= $url. $self->{init_option} if $self->{init_option};
+#		print "Accsece uri = $url\n";
 		$self->{uri} = URI->new($url);
-#		return print "Initialize completed\n";
+ 		# print "Initialize completed\n";
+		return;
 	}
 	sub get {
 		my $self = shift;
@@ -89,15 +98,24 @@ use Data::Dumper;
 		else{
 			$content_data = $self->get();
 		}
+		unless (exists $content_data->{posts}->{post}) {
+			print "no contents data\n";
+			return $self->{err} = 1;
+		}
 		for my $post ($content_data->{posts}) {
-			while( my ($keys, $values)= each %$post->{post}){
+			while( my ($keys, %values)= each $post->{post}){
 				$self->{posts}->{$keys};
-				while (my ($keys2, $values2) = each $values) {
-				$self->{posts}->{$keys}->{$keys2} = $values2;
+				while (my ($keys2, %values2) = each %values) {
+				$self->{posts}->{$keys}->{$keys2} = %values2;
  				}
 			}
 		}
+		$self->{err} = 0;
 		return $self->{posts};
+	}
+	sub _err {
+		my $self = shift;
+		return $self->{err} || 0;
 	}
 }
 

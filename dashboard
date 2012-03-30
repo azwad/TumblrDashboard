@@ -12,8 +12,9 @@ my $offset = 0;
 my $num = 10;
 my $type = '';
 my $delay_time = 1;
+my $max = 50;
 
-for ($offset = 0; $offset <= 250; $offset += $num){
+for ($offset = 0; $offset <= $max; $offset += $num){
 
 my $td = TumblrDashboard->new($pit_account);
 
