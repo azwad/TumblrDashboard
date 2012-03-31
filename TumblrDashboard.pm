@@ -37,27 +37,27 @@ use XML::Simple;
 	}
 	sub init_option {
 		my $self = shift;
-#		print "initializing options\n";
 		my $option = $self->{option};
-		my @options =( ) ;
+		my @options =( );
 		push(@options,  ('&start='.$option->{start}))			if $option->{start}; 
 		push(@options,  ('&num='. $option->{num}))				if $option->{num};
 		push(@options,  ('&type='. $option->{type}))			if $option->{type};
 		push(@options,  ('&filter='. $option->{filter}))	if $option->{filter};
 		push(@options,  ('&likes=' . $option->{likes}))		if $option->{likes};
 		$self->{init_option} = join('',@options);
-		my $option = $self->{init_option};
 		$self->init;
 		return  $self->{init_option};
 	}
 	sub init {
 		my $self = shift;
-		my $apiurl;
-		if ( $self->{option}->{liked} eq 'true'){
+		my $apiurl = 'http://www.tumblr.com/api/dashboard';
+		if ( $self->{option}->{liked}){
+			my $liked =  $self->{option}->{liked};
+			if  ($liked eq 'true'){
 				$apiurl = 'http://www.tumblr.com/api/likes';
-		}else{
-				$apiurl = 'http://www.tumblr.com/api/dashboard';
+			}
 		}
+
 #		print "Access API is $apiurl\n";
 		my $pit_account;
 		if ( $self->{pit_account}){
@@ -76,9 +76,7 @@ use XML::Simple;
 		my $password = $config->{password};
 		my $url = $apiurl."?email=" . $email . "&password=". $password;
 		$url 	= $url. $self->{init_option} if $self->{init_option};
-#		print "Accsece uri = $url\n";
 		$self->{uri} = URI->new($url);
- 		# print "Initialize completed\n";
 		return;
 	}
 	sub get {
@@ -103,10 +101,9 @@ use XML::Simple;
 			return $self->{err} = 1;
 		}
 		for my $post ($content_data->{posts}) {
-			while( my ($keys, %values)= each $post->{post}){
-				$self->{posts}->{$keys};
-				while (my ($keys2, %values2) = each %values) {
-				$self->{posts}->{$keys}->{$keys2} = %values2;
+			while( my ($keys, $values)= each $post->{post}){
+				while (my ($keys2, $values2) = each $values) {
+				$self->{posts}->{$keys}->{$keys2} = $values2;
  				}
 			}
 		}
