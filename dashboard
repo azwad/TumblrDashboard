@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use lib qw(/home/toshi/perl/lib);
+#use lib qw(/home/toshi/perl/lib);
 use strict;
 use Data::Dumper;
 use TumblrDashboard;
@@ -28,33 +28,27 @@ my %opt = (
 );
 
 $td->set_option(%opt);
-
-my $res;
 my $res  = $td->get_hash;
-
 
 open my $fh1, '>>', 'tumblrdashboard.xml';
 print $fh1 encode_utf8(Dump($res));
 close $fh1;
 
-open my $fh2, '>>', 'tumblrdashboard.txt';
-open my $fh3, '>>', 'dblist.txt';
+open my $fh2, '>>', 'tumblrdashboard.txt' or die "can't open";
+open my $fh3, '>>', 'dblist.txt' or die "cant't open";
 
 my $dbname = 'tumblr_deduped_check';
-
 my %deduped = {};
 dbmopen(%deduped, $dbname, 0644);
 my $deduped = \%deduped;
-
-#print $res."\n";
-
+;
 while (my ($post, $values) = each %$res) {
   if (exists $deduped{$post}){
 		print $deduped{$post} ."is match an old post\n";
 		next;
 	}else {
-		my @urls =();
-		for (my ($number, $url) = each %$deduped){
+	my @urls =();
+		for (my ($number, $url) = each $deduped){
 			push(@urls,$url);
 		}
 		my $date = $values->{date};
@@ -66,6 +60,7 @@ while (my ($post, $values) = each %$res) {
 		my $link =  $1 || $values->{'photo-link-url'} || $values->{'url'};
 		my $from = $values->{tumblelog}[0];
 		print $title." : ".$link ."\n";
+
 		if ( grep{ $_ eq $link } @urls){
 			print "match listed url\n";
 			next;
