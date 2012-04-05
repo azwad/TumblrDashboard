@@ -4,10 +4,11 @@ use warnings;
 use URI;
 use WWW::Mechanize::GZip;
 use YAML;
-use Encode;
+use Encode qw( decode_utf8);
 use Config::Pit;
 use Compress::Zlib;
 use XML::Simple;
+use feature qw( say );
 
 { package TumblrDashboard;
 	sub new {
@@ -83,7 +84,8 @@ use XML::Simple;
 		my $self = shift;
 		my $dashboard = WWW::Mechanize::GZip->new();
 		my $result= $dashboard->get($self->{uri});
-		my $content_xml =  $result->{_content};
+		my $content_xml = $result->{_content};
+		Encode::decode_utf8($content_xml);
 		my $xs = XML::Simple->new();
 		return  $self->{content_data} = $xs->XMLin($content_xml);
 	}
